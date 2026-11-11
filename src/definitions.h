@@ -616,7 +616,7 @@ typedef struct rcoption {
 	const char *name;
 		/* The name of the rcfile option. */
 	long flag;
-		/* The flag associated with it, if any. */
+		/* Its flag, zero for an argument, or negative for a disabled feature. */
 } rcoption;
 #endif
 

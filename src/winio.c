@@ -2058,7 +2058,7 @@ void titlebar(const char *path)
 			path = openfile->filename;
 
 		if (ISSET(VIEW_MODE))
-			state = _("View");
+			state = _("Read-only");
 #ifndef NANO_TINY
 		else if (ISSET(STATEFLAGS))
 			state = "+.xxxxx";

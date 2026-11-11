@@ -14,6 +14,8 @@ core
 .gdbinit
 
 /src/nano
+/src/nread
+/doc/nread.1.html
 /src/revision.h
 
 /ABOUT-NLS

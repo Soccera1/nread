@@ -16,7 +16,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see https://www.gnu.org/licenses/.
 
-AC_INIT([GNU nano], [9.3], [nano-devel@gnu.org], [nano])
+AC_INIT([nread], [9.3], [], [nread])
 AC_CONFIG_SRCDIR([src/nano.c])
 AC_CANONICAL_HOST
 AM_INIT_AUTOMAKE([1.14])
@@ -128,55 +128,6 @@ if test "x$enable_color" != xno; then
 	color_support=yes
 fi
 
-AC_ARG_ENABLE(comment,
-AS_HELP_STRING([--disable-comment], [Disable the comment/uncomment function]))
-if test "x$enable_tiny" = xyes; then
-	if test "x$enable_comment" = xyes; then
-		AC_MSG_ERROR([
-  ***  --enable-comment cannot work with --enable-tiny])
-	else
-		enable_comment=no
-	fi
-fi
-if test "x$enable_comment" != xno; then
-	AC_DEFINE(ENABLE_COMMENT, 1, [Define this to enable the comment/uncomment function.])
-fi
-
-AC_ARG_ENABLE(extra,
-AS_HELP_STRING([--disable-extra], [Disable the Easter egg]))
-if test "x$enable_tiny" = xyes; then
-	if test "x$enable_extra" != xyes; then
-		enable_extra=no
-	fi
-fi
-if test "x$enable_extra" != xno; then
-	AC_DEFINE(ENABLE_EXTRA, 1, [Define this to have an Easter egg.])
-fi
-
-AC_ARG_ENABLE(formatter,
-AS_HELP_STRING([--disable-formatter], [Disable the formatting tool]))
-if test "x$enable_tiny" = xyes; then
-	if test "x$enable_formatter" = xyes; then
-		if test "x$enable_color" != xyes; then
-			AC_MSG_ERROR([
-  ***  --enable-formatter needs both --enable-color and --enable-nanorc to work])
-		fi
-	else
-		enable_formatter=no
-	fi
-fi
-if test "x$enable_color" = xno; then
-	if test "x$enable_formatter" = xyes; then
-		AC_MSG_ERROR([
-  ***  --enable-formatter cannot work with --disable-color nor --disable-nanorc])
-	else
-		enable_formatter=no
-	fi
-fi
-if test "x$enable_formatter" != xno; then
-	AC_DEFINE(ENABLE_FORMATTER, 1, [Define this to have access to a formatter.])
-fi
-
 AC_ARG_ENABLE(help,
 AS_HELP_STRING([--disable-help], [Disable the built-in help texts]))
 if test "x$enable_tiny" = xyes; then
@@ -213,17 +164,6 @@ if test "x$enable_histories" != xno; then
 	AC_DEFINE(ENABLE_HISTORIES, 1, [Define this to have search and position histories.])
 fi
 
-AC_ARG_ENABLE(justify,
-AS_HELP_STRING([--disable-justify], [Disable the justify/unjustify functions]))
-if test "x$enable_tiny" = xyes; then
-	if test "x$enable_justify" != xyes; then
-		enable_justify=no
-	fi
-fi
-if test "x$enable_justify" != xno; then
-	AC_DEFINE(ENABLE_JUSTIFY, 1, [Define this to have the routines for justifying.])
-fi
-
 AC_ARG_ENABLE(libmagic,
 AS_HELP_STRING([--disable-libmagic], [Disable detection of file types via libmagic]))
 if test "x$enable_libmagic" = xyes; then
@@ -237,30 +177,6 @@ if test "x$enable_libmagic" = xyes; then
 		AC_MSG_ERROR([
   ***  --enable-libmagic cannot work with --disable-color nor --disable-nanorc])
 	fi
-fi
-
-AC_ARG_ENABLE(linter,
-AS_HELP_STRING([--disable-linter], [Disable the linting tool]))
-if test "x$enable_tiny" = xyes; then
-	if test "x$enable_linter" = xyes; then
-		if test "x$enable_color" != xyes; then
-			AC_MSG_ERROR([
-  ***  --enable-linter needs both --enable-color and --enable-nanorc to work])
-		fi
-	else
-		enable_linter=no
-	fi
-fi
-if test "x$enable_color" = xno; then
-	if test "x$enable_linter" = xyes; then
-		AC_MSG_ERROR([
-  ***  --enable-linter cannot work with --disable-color nor --disable-nanorc])
-	else
-		enable_linter=no
-	fi
-fi
-if test "x$enable_linter" != xno; then
-	AC_DEFINE(ENABLE_LINTER, 1, [Define this to have access to a linter.])
 fi
 
 AC_ARG_ENABLE(linenumbers,
@@ -319,17 +235,6 @@ if test "x$enable_operatingdir" != xno; then
 	AC_DEFINE(ENABLE_OPERATINGDIR, 1, [Define this to allow setting an operating directory (a chroot of sorts).])
 fi
 
-AC_ARG_ENABLE(speller,
-AS_HELP_STRING([--disable-speller], [Disable the spell-checking tool]))
-if test "x$enable_tiny" = xyes; then
-	if test "x$enable_speller" != xyes; then
-		enable_speller=no
-	fi
-fi
-if test "x$enable_speller" != xno; then
-	AC_DEFINE(ENABLE_SPELLER, 1, [Define this to have access to a spell checker.])
-fi
-
 AC_ARG_ENABLE(tabcomp,
 AS_HELP_STRING([--disable-tabcomp], [Disable the tab-completion functions]))
 if test "x$enable_tiny" = xyes; then
@@ -339,31 +244,6 @@ if test "x$enable_tiny" = xyes; then
 fi
 if test "x$enable_tabcomp" != xno; then
 	AC_DEFINE(ENABLE_TABCOMP, 1, [Define this to have tab completion for filenames and search strings.])
-fi
-
-AC_ARG_ENABLE(wordcomp,
-AS_HELP_STRING([--disable-wordcomp], [Disable the word-completion function]))
-if test "x$enable_tiny" = xyes; then
-	if test "x$enable_wordcomp" = xyes; then
-		AC_MSG_ERROR([
-  ***  --enable-wordcomp cannot work with --enable-tiny])
-	else
-		enable_wordcomp=no
-	fi
-fi
-if test "x$enable_wordcomp" != xno; then
-	AC_DEFINE(ENABLE_WORDCOMPLETION, 1, [Define this to enable the word-completion function.])
-fi
-
-AC_ARG_ENABLE(wrapping,
-AS_HELP_STRING([--disable-wrapping], [Disable all hard-wrapping of text]))
-if test "x$enable_tiny" = xyes; then
-	if test "x$enable_wrapping" != xyes; then
-		enable_wrapping=no
-	fi
-fi
-if test "x$enable_wrapping" != xno; then
-	AC_DEFINE(ENABLE_WRAPPING, 1, [Define this to have hard text wrapping.])
 fi
 
 AC_ARG_ENABLE(debug,
@@ -391,9 +271,9 @@ AC_ARG_ENABLE(utf8, AS_HELP_STRING([--enable-utf8], [Enable UTF-8 support]))
 AC_MSG_RESULT(${enable_utf8:-auto})
 
 AC_ARG_ENABLE(altrcname,
-AS_HELP_STRING([--enable-altrcname], [Specify an alternate rcfile name (default: .nanorc)]),
+AS_HELP_STRING([--enable-altrcname], [Specify an alternate user rcfile name (default: .nreadrc)]),
 [if test x$enableval != no; then
-	AC_DEFINE_UNQUOTED(RCFILE_NAME, "$enableval", [Specify an alternate rcfile name (default: .nanorc).]) rcfilename=$enableval
+	AC_DEFINE_UNQUOTED(RCFILE_NAME, "$enableval", [Specify an alternate user rcfile name (default: .nreadrc).]) rcfilename=$enableval
 fi])
 
 dnl Checks for functions.

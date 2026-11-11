@@ -32,80 +32,109 @@
 #include <unistd.h>
 
 #ifndef RCFILE_NAME
-#define HOME_RC_NAME  ".nanorc"
-#define RCFILE_NAME  "nanorc"
+#define HOME_RC_NAME  ".nreadrc"
+#define RCFILE_NAME  "nreadrc"
 #else
 #define HOME_RC_NAME  RCFILE_NAME
 #endif
 
+/* A negative flag recognizes a setting whose feature is unavailable. */
 static const rcoption rcopts[] = {
 	{"boldtext", BOLD_TEXT},
 #ifdef ENABLE_JUSTIFY
 	{"brackets", 0},
+#else
+	{"brackets", -1},
 #endif
 #ifdef ENABLE_WRAPPING
 	{"breaklonglines", BREAK_LONG_LINES},
+#else
+	{"breaklonglines", -1},
 #endif
 	{"casesensitive", CASE_SENSITIVE},
 	{"constantshow", CONSTANT_SHOW},
 #ifdef ENABLED_WRAPORJUSTIFY
 	{"fill", 0},
+#else
+	{"fill", -1},
 #endif
 #ifdef ENABLE_HISTORIES
 	{"historylog", HISTORYLOG},
+#else
+	{"historylog", -1},
 #endif
 #ifdef ENABLE_LINENUMBERS
 	{"linenumbers", LINE_NUMBERS},
+#else
+	{"linenumbers", -1},
 #endif
 #ifdef HAVE_LIBMAGIC
 	{"magic", USE_MAGIC},
+#else
+	{"magic", -1},
 #endif
 #ifdef ENABLE_MOUSE
 	{"mouse", USE_MOUSE},
+#else
+	{"mouse", -1},
 #endif
 #ifdef ENABLE_MULTIBUFFER
 	{"multibuffer", NEW_BUFFER},  /* Deprecated; remove in 2031. */
 	{"newbuffer", NEW_BUFFER},
+#else
+	{"multibuffer", -1},
+	{"newbuffer", -1},
 #endif
 	{"nohelp", NO_HELP},
-	{"nonewlines", NO_NEWLINES},
+	{"nonewlines", -1},
 #ifdef ENABLE_WRAPPING
 	{"nowrap", NO_WRAP},  /* Deprecated; remove in 2027. */
+#else
+	{"nowrap", -1},
 #endif
 #ifdef ENABLE_OPERATINGDIR
 	{"operatingdir", 0},
+#else
+	{"operatingdir", -1},
 #endif
 #ifdef ENABLE_HISTORIES
 	{"positionlog", POSITIONLOG},
+#else
+	{"positionlog", -1},
 #endif
 	{"preserve", PRESERVE},
 #ifdef ENABLE_JUSTIFY
 	{"punct", 0},
 	{"quotestr", 0},
+#else
+	{"punct", -1},
+	{"quotestr", -1},
 #endif
 	{"quickblank", QUICK_BLANK},
 	{"rawsequences", RAW_SEQUENCES},
-	{"rebinddelete", REBIND_DELETE},
+	{"rebinddelete", -1},
 	{"regexp", USE_REGEXP},
-	{"saveonexit", SAVE_ON_EXIT},
+	{"saveonexit", -1},
 #ifdef ENABLE_SPELLER
 	{"speller", 0},
+#else
+	{"speller", -1},
 #endif
 #ifndef NANO_TINY
 	{"afterends", AFTER_ENDS},
-	{"allow_insecure_backup", INSECURE_BACKUP},
+	{"allow_insecure_backup", -1},
 	{"atblanks", AT_BLANKS},
-	{"autoindent", AUTOINDENT},
-	{"backup", MAKE_BACKUP},
-	{"backupdir", 0},
-	{"bookstyle", BOOKSTYLE},
+	{"autoindent", -1},
+	{"backup", -1},
+	{"backupdir", -1},
+	{"bookstyle", -1},
 	{"colonparsing", COLON_PARSING},
-	{"cutfromcursor", CUT_FROM_CURSOR},
+	{"cutfromcursor", -1},
 	{"emptyline", EMPTY_LINE},
 	{"guidestripe", 0},
 	{"indicator", INDICATOR},
 	{"jumpyscrolling", JUMPY_SCROLLING},
-	{"locking", LOCKING},
+	{"locking", -1},
 	{"matchbrackets", 0},
 	{"minibar", MINIBAR},
 	{"noconvert", NO_CONVERT},
@@ -115,15 +144,48 @@ static const rcoption rcopts[] = {
 	{"solosidescroll", SOLO_SIDESCROLL},
 	{"stateflags", STATEFLAGS},
 	{"tabsize", 0},
-	{"tabstospaces", TABS_TO_SPACES},
-	{"trimblanks", TRIM_BLANKS},
-	{"unix", MAKE_IT_UNIX},
+	{"tabstospaces", -1},
+	{"trimblanks", -1},
+	{"unix", -1},
 	{"whitespace", 0},
 	{"whitespacedisplay", WHITESPACE_DISPLAY},
 	{"wordbounds", WORD_BOUNDS},
 	{"wordchars", 0},
-	{"zap", LET_THEM_ZAP},
+	{"zap", -1},
 	{"zero", ZERO},
+#else
+	{"afterends", -1},
+	{"allow_insecure_backup", -1},
+	{"atblanks", -1},
+	{"autoindent", -1},
+	{"backup", -1},
+	{"backupdir", -1},
+	{"bookstyle", -1},
+	{"colonparsing", -1},
+	{"cutfromcursor", -1},
+	{"emptyline", -1},
+	{"guidestripe", -1},
+	{"indicator", -1},
+	{"jumpyscrolling", -1},
+	{"locking", -1},
+	{"matchbrackets", -1},
+	{"minibar", -1},
+	{"noconvert", -1},
+	{"showcursor", -1},
+	{"smarthome", -1},
+	{"softwrap", -1},
+	{"solosidescroll", -1},
+	{"stateflags", -1},
+	{"tabsize", -1},
+	{"tabstospaces", -1},
+	{"trimblanks", -1},
+	{"unix", -1},
+	{"whitespace", -1},
+	{"whitespacedisplay", -1},
+	{"wordbounds", -1},
+	{"wordchars", -1},
+	{"zap", -1},
+	{"zero", -1},
 #endif
 #ifdef ENABLE_COLOR
 	{"titlecolor", 0},
@@ -138,9 +200,115 @@ static const rcoption rcopts[] = {
 	{"errorcolor", 0},
 	{"keycolor", 0},
 	{"functioncolor", 0},
+#else
+	{"titlecolor", -1},
+	{"numbercolor", -1},
+	{"stripecolor", -1},
+	{"scrollercolor", -1},
+	{"selectedcolor", -1},
+	{"spotlightcolor", -1},
+	{"minicolor", -1},
+	{"promptcolor", -1},
+	{"statuscolor", -1},
+	{"errorcolor", -1},
+	{"keycolor", -1},
+	{"functioncolor", -1},
 #endif
 	{NULL, 0}
 };
+
+/* Recognize bindings for features that were omitted from this build. */
+static bool unavailable_function(const char *name)
+{
+	static const char *names[] = {
+#ifndef ENABLE_HELP
+		"help",
+#endif
+#ifndef ENABLE_SPELLER
+		"tospell", "speller",
+#endif
+#ifndef ENABLE_LINTER
+		"linter",
+#endif
+#ifndef ENABLE_FORMATTER
+		"formatter",
+#endif
+#ifndef ENABLE_JUSTIFY
+		"justify", "fulljustify", "beginpara", "endpara",
+#endif
+#ifndef ENABLE_COMMENT
+		"comment",
+#endif
+#ifndef ENABLE_WORDCOMPLETION
+		"complete",
+#endif
+#ifndef ENABLE_WRAPPING
+		"breaklonglines",
+#endif
+#ifndef ENABLE_MULTIBUFFER
+		"prevbuf", "nextbuf", "flipnewbuffer",
+#endif
+#ifndef ENABLE_BROWSER
+		"tofiles", "browser", "gotodir", "firstfile", "lastfile",
+#endif
+#ifndef ENABLE_HISTORIES
+		"older", "newer",
+#endif
+#ifndef ENABLE_LINENUMBERS
+		"linenumbers",
+#endif
+#ifndef ENABLE_COLOR
+		"nosyntax",
+#endif
+#ifndef ENABLE_MOUSE
+		"mouse",
+#endif
+#ifdef NANO_TINY
+		"execute", "cutrestoffile", "zap", "mark", "indent", "unindent",
+		"chopwordleft", "chopwordright", "findbracket", "wordcount",
+		"recordmacro", "runmacro", "anchor", "prevanchor", "nextanchor",
+		"undo", "redo", "suspend", "scrollleft", "scrollright", "toprow",
+		"bottomrow", "center", "cycle", "dosformat", "append", "prepend",
+		"backup", "flipexecute", "flippipe", "flipconvert", "nohelp", "zero",
+		"constantshow", "softwrap", "whitespacedisplay", "smarthome",
+		"autoindent", "cutfromcursor", "tabstospaces",
+#ifndef ENABLE_HELP
+		"scrollup", "scrolldown",
+#endif
+#endif
+		NULL
+	};
+
+	for (size_t i = 0; names[i]; i++)
+		if (strcmp(name, names[i]) == 0)
+			return TRUE;
+
+	return FALSE;
+}
+
+/* Skip syntax directives whose features are absent, including their arguments. */
+static bool unavailable_syntax_command(const char *name)
+{
+	return (
+#ifndef ENABLE_COLOR
+			strcmp(name, "syntax") == 0 || strcmp(name, "header") == 0 ||
+			strcmp(name, "color") == 0 || strcmp(name, "icolor") == 0 ||
+			strcmp(name, "include") == 0 || strcmp(name, "extendsyntax") == 0 ||
+#endif
+#if !defined(ENABLE_COLOR) || !defined(HAVE_LIBMAGIC)
+			strcmp(name, "magic") == 0 ||
+#endif
+#if !defined(ENABLE_COLOR) || !defined(ENABLE_COMMENT)
+			strcmp(name, "comment") == 0 ||
+#endif
+#if !defined(ENABLE_COLOR) || !defined(ENABLE_LINTER)
+			strcmp(name, "linter") == 0 ||
+#endif
+#if !defined(ENABLE_COLOR) || !defined(ENABLE_FORMATTER)
+			strcmp(name, "formatter") == 0 ||
+#endif
+			strcmp(name, "tabgives") == 0);
+}
 
 static size_t lineno = 0;
 		/* The line number of the last encountered error. */
@@ -816,19 +984,19 @@ void parse_binding(char *ptr, bool dobind)
 			newsc = strtosc(funcptr);
 
 		if (newsc == NULL) {
-			jot_error(N_("Unknown function: %s"), funcptr);
+			if (!unavailable_function(funcptr))
+				jot_error(N_("Unknown function: %s"), funcptr);
 			goto free_things;
 		}
 	}
 
-	/* Wipe the given shortcut from the given menu. */
-	for (keystruct *s = sclist; s != NULL; s = s->next)
-		if ((s->menus & menu) && s->keycode == keycode)
-			s->menus &= ~menu;
-
-	/* When unbinding, we are done now. */
-	if (!dobind)
+	/* An explicit unbind still removes the existing shortcut. */
+	if (!dobind) {
+		for (keystruct *s = sclist; s != NULL; s = s->next)
+			if (s->keycode == keycode)
+				s->menus &= ~menu;
 		goto free_things;
+	}
 
 	/* Limit the given menu to those where the function exists;
 	 * first handle five special cases, then the general case. */
@@ -853,6 +1021,20 @@ void parse_binding(char *ptr, bool dobind)
 		menu &= mask;
 	}
 
+	/* Rebinding universal prompt keys must not re-enable editing the file. */
+	if (changes_something(newsc->func))
+		menu &= ~MMAIN;
+	if (newsc->func == flip_replace)
+		menu = 0;
+#ifndef NANO_TINY
+	if (newsc->func == do_toggle &&
+			(newsc->toggle == BREAK_LONG_LINES ||
+			 newsc->toggle == TABS_TO_SPACES ||
+			 newsc->toggle == AUTOINDENT ||
+			 newsc->toggle == CUT_FROM_CURSOR))
+		menu = 0;
+#endif
+
 	if (!menu) {
 		if (!ISSET(RESTRICTED) && !ISSET(VIEW_MODE))
 			jot_error(N_("Function '%s' does not exist in menu '%s'"), funcptr, menuptr);
@@ -871,6 +1053,11 @@ void parse_binding(char *ptr, bool dobind)
 		free(newsc);
 		return;
 	}
+
+	/* Only a usable binding may replace an existing shortcut. */
+	for (keystruct *s = sclist; s != NULL; s = s->next)
+		if (s->keycode == keycode)
+			s->menus &= ~menu;
 
 	/* Add the new shortcut at the start of the list. */
 	newsc->next = sclist;
@@ -1364,8 +1551,8 @@ static void check_vitals_mapped(void)
 				if (first_sc_for(inmenus[v], f->func) == NULL) {
 					jot_error(N_("No key is bound to function '%s' in menu '%s'. "
 								" Exiting.\n"), f->tag, menu_to_name(inmenus[v]));
-					die(_("If needed, use nano with the -I option "
-								"to adjust your nanorc settings.\n"));
+					die(_("If needed, use nread with the -I option "
+								"to adjust your configuration settings.\n"));
 				} else
 					break;
 			}
@@ -1415,6 +1602,9 @@ void parse_rcfile(FILE *rcstream, bool just_syntax, bool intros_only)
 		keyword = ptr;
 		ptr = parse_next_word(ptr);
 
+		if (unavailable_syntax_command(keyword))
+			continue;
+
 #ifdef ENABLE_COLOR
 		/* Handle extending first... */
 		if (!just_syntax && strcmp(keyword, "extendsyntax") == 0) {
@@ -1425,6 +1615,14 @@ void parse_rcfile(FILE *rcstream, bool just_syntax, bool intros_only)
 			check_for_nonempty_syntax();
 
 			ptr = parse_next_word(ptr);
+
+			/* An extension for an unavailable feature needs no syntax lookup. */
+			char *command = copy_of(ptr);
+			parse_next_word(command);
+			bool unavailable = unavailable_syntax_command(command);
+			free(command);
+			if (unavailable)
+				continue;
 
 			for (sntx = syntaxes; sntx != NULL; sntx = sntx->next)
 				if (!strcmp(sntx->name, syntaxname))
@@ -1546,6 +1744,10 @@ void parse_rcfile(FILE *rcstream, bool just_syntax, bool intros_only)
 			jot_error(N_("Unknown option: %s"), option);
 			continue;
 		}
+
+		/* Known options for unavailable features are harmless in shared rcfiles. */
+		if (rcopts[i].flag < 0)
+			continue;
 
 		/* If the option has a flag, set it or unset it, as requested. */
 		if (rcopts[i].flag) {
@@ -1688,7 +1890,7 @@ void parse_rcfile(FILE *rcstream, bool just_syntax, bool intros_only)
 	return;
 }
 
-/* Read and interpret one of the two nanorc files. */
+/* Read and interpret the selected configuration file. */
 void parse_one_nanorc(void)
 {
 	FILE *rcstream = fopen(nanorc, "rb");
@@ -1726,17 +1928,23 @@ void do_rcfiles(void)
 	} else {
 		const char *xdgconfdir;
 
-		if (have_nanorc(SYSCONFDIR, "/nanorc"))
+		if (have_nanorc(SYSCONFDIR, "/nreadrc") ||
+					have_nanorc("/etc", "/nreadrc") ||
+					have_nanorc(SYSCONFDIR, "/nanorc") ||
+					have_nanorc("/etc", "/nanorc"))
 			parse_one_nanorc();
 
 		get_homedir();
 		xdgconfdir = getenv("XDG_CONFIG_HOME");
 
-		/* Now try to find a nanorc file in the user's home directory or in the
-		 * XDG configuration directories, and process the first one found. */
+		/* Prefer any user nreadrc over nano's configuration, and process
+		 * only the first file found.  System and user fallbacks are separate. */
 		if (have_nanorc(homedir, "/" HOME_RC_NAME) ||
-					have_nanorc(xdgconfdir, "/nano/" RCFILE_NAME) ||
-					have_nanorc(homedir, "/.config/nano/" RCFILE_NAME))
+					have_nanorc(xdgconfdir, "/nread/" RCFILE_NAME) ||
+					have_nanorc(homedir, "/.config/nread/" RCFILE_NAME) ||
+					have_nanorc(homedir, "/.nanorc") ||
+					have_nanorc(xdgconfdir, "/nano/nanorc") ||
+					have_nanorc(homedir, "/.config/nano/nanorc"))
 			parse_one_nanorc();
 		else if (homedir == NULL && xdgconfdir == NULL)
 			jot_error(N_("I can't find my home directory!  Wah!"));

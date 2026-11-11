@@ -1165,7 +1165,7 @@ void insert_a_file_or(bool execute)
 					msg = _("File to read unconverted into new buffer [from %s]");
 				else
 #endif
-					msg = _("File to read into new buffer [from %s]");
+					msg = _("File to open [from %s]");
 			else
 #endif
 #ifndef NANO_TINY
@@ -1318,8 +1318,12 @@ void insert_a_file_or(bool execute)
 /* If the current mode of operation allows it, go insert a file. */
 void do_insertfile(void)
 {
+#ifdef ENABLE_MULTIBUFFER
+	/* Opening another file must never insert text into the current file. */
+	SET(NEW_BUFFER);
 	if (!in_restricted_mode())
 		insert_a_file_or(FALSE);
+#endif
 }
 
 #ifndef NANO_TINY
@@ -1714,6 +1718,12 @@ bool write_file(const char *filename, FILE *thefile, writing_type method, bool a
 		/* The number of lines written, for feedback on the status bar. */
 	bool normal = (method != SPECIAL);
 		/* TRUE when it's not a temporary file nor an emergency file. */
+
+	/* Never write the displayed buffer, even through a rebound command. */
+	if (ISSET(VIEW_MODE)) {
+		print_view_warning();
+		return FALSE;
+	}
 
 #ifdef ENABLE_OPERATINGDIR
 	/* If we're writing a temporary file, we're probably going outside

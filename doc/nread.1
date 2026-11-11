@@ -1,0 +1,63 @@
+.TH NREAD 1 "November 2026" "nread 9.3"
+.SH NAME
+nread \- read text files in a terminal
+.SH SYNOPSIS
+.B nread
+.RI [ OPTIONS ]
+.RI [[ +LINE [, COLUMN ]] " FILE" ]...
+.SH DESCRIPTION
+nread is a read-only terminal text reader derived from GNU nano.
+It supports navigation, searching, syntax highlighting, soft wrapping,
+and multiple open files. Typing and pasting never alter the text.
+There are no editing, saving, replacement, or command-execution commands.
+Use a filename of \fB-\fR to read standard input.
+.SH KEYS
+.TP
+.B Ctrl+F
+Search for text. Alt+W repeats the search.
+.TP
+.B Ctrl+R
+Open another file for reading.
+.TP
+.B Alt+, / Alt+.
+Switch between open files.
+.TP
+.B Ctrl+X
+Close the current file, or exit when it is the last file.
+.TP
+.B Ctrl+G
+Show help and the complete shortcut list.
+.SH OPTIONS
+.TP
+.BR -l , " --linenumbers"
+Show line numbers.
+.TP
+.BR -S , " --softwrap"
+Display long lines across multiple screen rows.
+.TP
+.BR -I , " --ignorercfiles"
+Ignore nanorc configuration files.
+.TP
+.BR -f " FILE", " --rcfile=FILE"
+Use only the specified configuration file.
+.TP
+.BR -h , " --help"
+Show all available options.
+.TP
+.BR -V , " --version"
+Show version information.
+.SH CONFIGURATION
+nread supports nano's nanorc configuration format for display settings,
+syntax highlighting, and reader key bindings.
+It looks for nreadrc in the configured system location, then /etc.
+If neither exists it looks for nanorc in those same locations.
+For user configuration it prefers ~/.nreadrc, $XDG_CONFIG_HOME/nread/nreadrc,
+or ~/.config/nread/nreadrc; if none exists it uses ~/.nanorc,
+$XDG_CONFIG_HOME/nano/nanorc, or ~/.config/nano/nanorc.
+Only the first user configuration found is read.
+Settings and bindings for disabled features are silently ignored.
+Ignored bindings preserve existing reader shortcuts. Unknown settings
+still report errors. Optional search and cursor-position histories can
+be enabled with \fB-H\fR and \fB-P\fR.
+.SH SEE ALSO
+.BR nanorc (5)

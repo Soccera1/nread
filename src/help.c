@@ -59,10 +59,7 @@ void help_init(void)
 				"shown in brackets after the search prompt.  Hitting "
 				"Enter without entering any text will perform the "
 				"previous search.  ");
-		htx[1] = N_("If you have selected text with the mark and then "
-				"search to replace, only matches in the selected text "
-				"will be replaced.\n\n The following function keys are "
-				"available in Search mode:\n\n");
+		htx[1] = N_("The following function keys are available in Search mode:\n\n");
 		htx[2] = NULL;
 	} else if (currmenu == MREPLACEWITH) {
 		htx[0] = N_("=== Replacement ===\n\n "
@@ -81,19 +78,11 @@ void help_init(void)
 		htx[1] = NULL;
 		htx[2] = NULL;
 	} else if (currmenu == MINSERTFILE) {
-		htx[0] = N_("Insert File Help Text\n\n "
-				"Type in the name of a file to be inserted into the "
-				"current file buffer at the current cursor "
-				"location.\n\n If you have compiled nano with multiple "
-				"file buffer support, and enable multiple file buffers "
-				"with the -F or --multibuffer command line flags, the "
-				"M-F toggle, or a nanorc file, inserting a file "
-				"will cause it to be loaded into a separate buffer "
-				"(use M-, and M-. to switch between file buffers).  ");
-		htx[1] = N_("If you need another blank buffer, do not enter "
-				"any filename, or type in a nonexistent filename at "
-				"the prompt and press Enter.\n\n The following "
-				"function keys are available in Insert File mode:\n\n");
+		htx[0] = N_("Open File Help Text\n\n "
+				"Type the name of a file to open for reading, then press Enter. "
+				"Each file opens in a separate buffer. "
+				"Use M-, and M-. to switch between open files.\n\n");
+		htx[1] = N_("The following function keys are available at this prompt:\n\n");
 		htx[2] = NULL;
 	} else if (currmenu == MWRITEFILE) {
 		htx[0] = N_("Write File Help Text\n\n "
@@ -111,8 +100,7 @@ void help_init(void)
 	} else if (currmenu == MBROWSER) {
 		htx[0] = N_("File Browser Help Text\n\n "
 				"The file browser is used to visually browse the "
-				"directory structure to select a file for reading "
-				"or writing.  You may use the arrow keys or Page Up/"
+				"directory structure to select a file for reading.  You may use the arrow keys or Page Up/"
 				"Down to browse through the files, and S or Enter to "
 				"choose the selected file or enter the selected "
 				"directory.  To move up one level, select the "
@@ -183,29 +171,16 @@ void help_init(void)
 		htx[2] = NULL;
 #endif
 	} else {
-		htx[0] = N_("Main nano help text\n\n "
-				"The nano editor is designed to emulate the "
-				"functionality and ease-of-use of the UW Pico text "
-				"editor.  There are four main sections of the editor.  "
-				"The top line shows the program version, the current "
-				"filename being edited, and whether or not the file "
-				"has been modified.  Next is the main editor window "
-				"showing the file being edited.  The status line is "
-				"the third line from the bottom and shows important "
-				"messages.  ");
-		htx[1] = N_("The bottom two lines show the most commonly used "
-				"shortcuts in the editor.\n\n Shortcuts are written as "
-				"follows: Control-key sequences are notated with a '^' "
-				"and can be entered either by using the Ctrl key or "
-				"pressing the Esc key twice.  Meta-key sequences are "
-				"notated with 'M-' and can be entered using either the "
-				"Alt, Cmd, or Esc key, depending on your keyboard setup.  ");
-		htx[2] = N_("Also, pressing Esc twice and then typing a "
-				"three-digit decimal number from 000 to 255 will enter "
-				"the character with the corresponding value.  The "
-				"following keystrokes are available in the main editor "
-				"window.  Alternative keys are shown in "
-				"parentheses:\n\n");
+		htx[0] = N_("nread Help\n\n "
+				"nread is a terminal text reader. Files are always read-only. "
+				"Use the arrow keys and Page Up/Down to navigate. "
+				"Search finds text, Open File opens another file, and "
+				"Exit closes the current file or exits.\n\n");
+		htx[1] = N_("The title bar shows the current filename. The bottom "
+				"lines show status messages and common shortcuts. "
+				"A '^' means Ctrl; 'M-' means Alt or Esc.\n\n");
+		htx[2] = N_("The following keystrokes are available in the reading "
+				"window. Alternative keys are shown in parentheses:\n\n");
 	}
 
 	/* Translate the introduction and determine its total size. */

@@ -345,7 +345,21 @@ void do_cancel(void)  {;}
 void add_to_funcs(void (*function)(void), int menus, const char *tag,
 					const char *phrase, bool blank_after)
 {
-	funcstruct *f = nmalloc(sizeof(funcstruct));
+	funcstruct *f;
+
+	/* Editing commands do not belong in the reader's menus or help. */
+	if (changes_something(function))
+		menus &= ~MMAIN;
+	if (function == flip_replace)
+		return;
+#ifndef ENABLE_MULTIBUFFER
+	if (function == do_insertfile)
+		return;
+#endif
+	if (!menus)
+		return;
+
+	f = nmalloc(sizeof(funcstruct));
 
 	if (allfuncs == NULL)
 		allfuncs = f;
@@ -437,7 +451,21 @@ void show_curses_version(void)
 void add_to_sclist(int menus, const char *scstring, const int keycode,
 						void (*function)(void))
 {
-	keystruct *sc = nmalloc(sizeof(keystruct));
+	keystruct *sc;
+
+	/* Keep text-entry keys in prompts, but never in the reading window. */
+	if (changes_something(function))
+		menus &= ~MMAIN;
+	if (function == flip_replace)
+		return;
+#ifndef ENABLE_MULTIBUFFER
+	if (function == do_insertfile)
+		return;
+#endif
+	if (!menus)
+		return;
+
+	sc = nmalloc(sizeof(keystruct));
 
 	/* Start the list, or tack on the next item. */
 	if (sclist == NULL)
@@ -464,6 +492,10 @@ void add_to_sclist(int menus, const char *scstring, const int keycode,
 /* Add a toggling key combo to the linked list of shortcuts. */
 void add_toggle(const char *scstring, int flag)
 {
+	if (flag == BREAK_LONG_LINES || flag == TABS_TO_SPACES ||
+			flag == AUTOINDENT || flag == CUT_FROM_CURSOR)
+		return;
+
 	add_to_sclist(flag == NO_HELP ? ALMOST_ALL : MMAIN, scstring, 0, do_toggle);
 	tailsc->toggle = flag;
 }
@@ -593,11 +625,11 @@ void shortcut_init(void)
 	 * they are best kept shorter than 56 characters, but may be longer. */
 	const char *cancel_gist = N_("Cancel the current function");
 	const char *help_gist = N_("Display this help text");
-	const char *exit_gist = N_("Close the current buffer / Exit from nano");
+	const char *exit_gist = N_("Close the current file / Exit from nread");
 	const char *writeout_gist =
 		N_("Write the current buffer (or the marked region) to disk");
 	const char *readfile_gist =
-		N_("Insert another file into current buffer (or into new buffer)");
+		N_("Open another file for reading");
 	const char *whereis_gist =
 		N_("Search forward for a string or a regular expression");
 	const char *wherewas_gist =
@@ -808,7 +840,7 @@ void shortcut_init(void)
 	if (!ISSET(RESTRICTED))
 #endif
 		add_to_funcs(do_insertfile, MMAIN,
-				N_("Read File"), WHENHELP(readfile_gist), BLANKAFTER);
+				N_("Open File"), WHENHELP(readfile_gist), BLANKAFTER);
 #ifdef ENABLE_JUSTIFY
 	else
 		add_to_funcs(do_justify, MMAIN,

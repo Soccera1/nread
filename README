@@ -1,124 +1,76 @@
+nread -- a terminal text reader
+==============================
 
-          GNU nano -- a simple editor, inspired by Pico
+nread is a read-only fork of GNU nano. It keeps file browsing, search,
+syntax highlighting, line numbers, soft wrapping, and multiple open files.
+Typing and pasting cannot change the displayed text. There are no save,
+replace, cut, undo, formatting, spell-checking, or command-execution controls.
+Files are opened without editor lock files, and exiting never asks to save.
 
-Purpose
+Usage
+-----
 
-    Nano is a small and simple text editor for use on the terminal.
-    It copied the interface and key bindings of the Pico editor but
-    added several missing features: undo/redo, syntax highlighting,
-    line numbers, softwrapping, multiple buffers, selecting text by
-    holding Shift, search-and-replace with regular expressions, and
-    several other conveniences.
+    nread file.txt
+    nread -l -S file.txt another.txt
+    nread +42 file.txt
+    command | nread -
 
-Appearance
+Use arrow keys and Page Up/Down to navigate. Ctrl+F searches, Alt+W finds
+another match, Ctrl+R opens another file, and Alt+, / Alt+. switch files.
+Ctrl+X closes the current file and exits when no files remain. Ctrl+G shows
+all shortcuts. Text selection and copying remain available for reading.
+Use --help to see display and navigation options.
 
-    In rough ASCII graphics, this is what nano's screen looks like:
+Configuration
+-------------
 
-   ____________________________________________________________________
-  |  GNU nano 9.3                  filename                  Modified  |
-   --------------------------------------------------------------------
-  | This is the text window, displaying the contents of a 'buffer',    |
-  | the contents of the file you are editing.                          |
-  |                                                                    |
-  | The top row of the screen is the 'title bar'; it shows nano's      |
-  | version, the name of the file, and whether you modified it.        |
-  | The two bottom rows display the most important shortcuts; in       |
-  | those lines ^ means Ctrl.  The third row from the bottom shows     |
-  | some feedback message, or gets replaced with a prompt bar when     |
-  | you tell nano to do something that requires extra input.           |
-  |                                                                    |
-   --------------------------------------------------------------------
-  |                       [ Some status message ]                      |
-  |^G Help       ^O Write Out  ^F Where Is   ^K Cut        ^T Execute  |
-  |^X Exit       ^R Read File  ^\ Replace    ^U Paste      ^J Justify  |
-   --------------------------------------------------------------------
+nread retains nano's nanorc syntax. It looks for nreadrc in the configured
+system location (normally /usr/local/etc), then /etc. If neither exists,
+it looks for nanorc in those same locations. This lets a local build reuse
+the system's installed /etc/nanorc without extra configure flags.
+It then reads the first user configuration found in this order:
 
-Origin
+    ~/.nreadrc
+    $XDG_CONFIG_HOME/nread/nreadrc
+    ~/.config/nread/nreadrc
+    ~/.nanorc
+    $XDG_CONFIG_HOME/nano/nanorc
+    ~/.config/nano/nanorc
 
-    The nano project was started in 1999 because of a few "problems"
-    with the wonderfully easy-to-use and friendly Pico text editor.
+Use -I to ignore configuration or -f FILE to read only a specific file.
+Display settings, syntax definitions, and reader key bindings are supported.
+Settings and bindings for disabled features are silently ignored; ignored
+bindings leave existing reader shortcuts intact. Unknown settings still
+report errors. Search and cursor-position history can be saved when
+explicitly enabled with -H and -P or their configuration settings.
 
-    First and foremost was its license: the Pine suite does not use
-    the GPL, and (before using the Apache License) it had unclear
-    restrictions on redistribution.  Because of this, Pine and Pico
-    were not included in many GNU/Linux distributions.  Furthermore,
-    some features (like go-to-line-number or search-and-replace) were
-    unavailable for a long time or require a command-line flag.  Yuck.
+Build
+-----
 
-    Nano aimed to solve these problems by: 1) being truly free software
-    by using the GPL, 2) emulating the functionality of Pico as closely
-    as is reasonable, and 3) including extra functionality by default.
+From this Git checkout:
 
-    Nowadays, nano wants to be a generally useful editor with sensible
-    defaults (linewise scrolling, no automatic line breaking).
+    ./autogen.sh
+    ./configure
+    make
+    ./src/nread README
 
-    The nano editor is an official GNU package.  For more information
-    on GNU and the Free Software Foundation, see https://www.gnu.org/.
+The bootstrap requires Git, autoconf, automake, autopoint/gettext, and
+downloads the pinned gnulib dependency. Building requires a C compiler,
+make, pkg-config, and ncurses development headers. See README.hacking for
+the inherited build prerequisites. Use ./configure --prefix=PATH to set
+the installation location, then make install to install nread.
 
-License
+Run the reader regression checks after building (requires Python 3 and pyte):
 
-    Nano's code and documentation are covered by the GPL version 3 or
-    (at your option) any later version, except for two functions that
-    were copied from busybox which are under a BSD license.  Nano's
-    documentation is additionally covered by the GNU Free Documentation
-    License version 1.2 or (at your option) any later version.  See the
-    files COPYING and COPYING.DOC for the full text of these licenses.
+    python3 tests/reader.py ./src/nread
 
-    When in any file of this package a copyright notice mentions a
-    year range (such as 1999-2011), it is a shorthand for a list of
-    all the years in that interval.
+License and origin
+------------------
 
-How to compile and install nano
-
-    Download the latest nano source tarball, and then:
-
-        tar -xvf nano-x.y.tar.gz
-        cd nano-x.y
-        ./configure
-        make
-        make install
-
-    You will need the header files of ncurses installed for ./configure
-    to succeed -- get them from libncurses-dev (Debian) or ncurses-devel
-    (Fedora) or a similarly named package.  Use --prefix with ./configure
-    to override the default installation directory of /usr/local.  And
-    use --sysconfdir=/etc when you want your self-compiled nano to read
-    the /etc/nanorc file.
-
-    After installation you may want to copy the doc/sample.nanorc file
-    to your home directory, rename it to ".nanorc", and then edit it
-    according to your taste.
-
-Web Page
-
-    https://nano-editor.org/
-
-Mailing Lists
-
-    There are three nano-related mailing-lists.
-
-    * <info-nano@gnu.org> is a very low traffic list used to announce
-      new nano versions or other important info about the project.
-
-    * <help-nano@gnu.org> is for those seeking to get help without
-      wanting to hear about the technical details of its development.
-
-    * <nano-devel@gnu.org> is the list used by the people that make nano
-      and a general development discussion list, with moderate traffic.
-
-    To subscribe, send email to <name>-request@gnu.org with a subject
-    of "subscribe", where <name> is the list you want to subscribe to.
-
-    The archives of the development and help mailing lists are here:
-
-        https://lists.gnu.org/archive/html/nano-devel/
-        https://lists.gnu.org/archive/html/help-nano/
-
-Bug Reports
-
-    If you find a bug, please file a detailed description of the problem
-    on nano's issue tracker: https://savannah.gnu.org/bugs/?group=nano
-    (you will need an account to be able to do so), or send an email
-    to the nano-devel list (no need to subscribe, but mention it if
-    you want to be CC'ed on an answer).
-
+Derived from the GNU nano development tree (https://nano-editor.org/),
+at commit 9de9f1ee, 38 commits after the 9.3 release. The original authors
+and contributors are listed in AUTHORS and THANKS. The source is licensed
+under GPL version 3 or later, with the existing BSD exceptions. Inherited
+documentation is also available under GNU FDL version 1.2 or later.
+See COPYING and COPYING.DOC. Historical nano documentation and release
+notes remain in the source tree for reference.

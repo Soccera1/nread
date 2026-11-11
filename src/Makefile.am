@@ -21,8 +21,8 @@ revision.h: FORCE
 			echo "#define $(SOMETHING)" > $@
 FORCE:
 
-bin_PROGRAMS = 	nano
-nano_SOURCES = \
+bin_PROGRAMS = 	nread
+nread_SOURCES = \
 		definitions.h \
 		prototypes.h \
 		browser.c \
@@ -42,10 +42,5 @@ nano_SOURCES = \
 		utils.c \
 		winio.c
 
-nano_LDADD = $(top_builddir)/lib/libgnu.a @LIBINTL@ \
+nread_LDADD = $(top_builddir)/lib/libgnu.a @LIBINTL@ \
 		$(GETRANDOM_LIB) $(CLOCK_TIME_LIB) $(LIBTHREAD)
-
-install-exec-hook:
-	cd $(DESTDIR)$(bindir) && rm -f rnano && $(LN_S) nano rnano
-uninstall-hook:
-	cd $(DESTDIR)$(bindir) && rm -f rnano
