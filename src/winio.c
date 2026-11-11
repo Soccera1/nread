@@ -2538,11 +2538,62 @@ void place_the_cursor(void)
 #define PAINT_LIMIT  2000
 
 #ifdef ENABLE_COLOR
-/* Use the terminal's available palette, reducing extended colors on terminals
- * with only eight or sixteen colors. */
-static short ansi_color(int color)
+/* Direct colors require both the extended curses API and a terminfo entry
+ * advertising RGB addressing.  A large palette alone is not sufficient. */
+static bool ansi_direct_colors(void)
 {
-	if (color < COLORS)
+#if defined(HAVE_INIT_EXTENDED_PAIR) && defined(HAVE_EXTENDED_PAIR_CONTENT) && \
+		defined(HAVE_TIGETFLAG)
+	return COLORS >= ANSI_RGB_FLAG &&
+			(tigetflag("RGB") == 1 || tigetnum("RGB") > 0);
+#else
+	return FALSE;
+#endif
+}
+
+/* Expand xterm indexed colors when the terminal uses packed RGB addressing. */
+static int ansi_index_rgb(int color)
+{
+	static const int basic[16] = {
+		0x000000, 0x800000, 0x008000, 0x808000,
+		0x000080, 0x800080, 0x008080, 0xc0c0c0,
+		0x808080, 0xff0000, 0x00ff00, 0xffff00,
+		0x0000ff, 0xff00ff, 0x00ffff, 0xffffff
+	};
+	static const int levels[6] = {0, 95, 135, 175, 215, 255};
+
+	if (color < 16)
+		return basic[color];
+	if (color >= 232) {
+		int gray = 8 + 10 * (color - 232);
+		return (gray << 16) | (gray << 8) | gray;
+	}
+	color -= 16;
+	return (levels[color / 36] << 16) |
+			(levels[color / 6 % 6] << 8) | levels[color % 6];
+}
+
+/* Resolve colors at display time, retaining RGB precision on direct-color
+ * terminals and approximating only when using a limited terminal palette. */
+static int ansi_color(int color)
+{
+	if (color < 0)
+		return -1;
+	if (ansi_direct_colors()) {
+		if (color & ANSI_RGB_FLAG)
+			return color & ~ANSI_RGB_FLAG;
+		/* Direct-color entries retain the terminal's first eight colors. */
+		return (color < 8 ? color : ansi_index_rgb(color));
+	}
+	if (color & ANSI_RGB_FLAG) {
+		int r = (color >> 16) & 255, g = (color >> 8) & 255, b = color & 255;
+		color = 16 + 36 * ((r * 5 + 127) / 255) +
+				6 * ((g * 5 + 127) / 255) + (b * 5 + 127) / 255;
+	}
+	/* Some direct-color terminals are used with older curses libraries.
+	 * Pass an approximation that fits the legacy short color arguments. */
+	int palette = (COLORS > 256 ? 8 : COLORS);
+	if (color < palette)
 		return color;
 	if (color < 16)
 		return color % 8;
@@ -2554,6 +2605,29 @@ static short ansi_color(int color)
 			((color % 6 >= 3) ? COLOR_BLUE : 0);
 }
 
+/* Keep full-width color arguments throughout pair allocation and lookup. */
+static int ansi_init_pair(int pair, int fg, int bg)
+{
+#ifdef HAVE_INIT_EXTENDED_PAIR
+	return init_extended_pair(pair, fg, bg);
+#else
+	return init_pair(pair, fg, bg);
+#endif
+}
+
+static int ansi_pair_content(int pair, int *fg, int *bg)
+{
+#ifdef HAVE_EXTENDED_PAIR_CONTENT
+	return extended_pair_content(pair, fg, bg);
+#else
+	short foreground, background;
+	int result = pair_content(pair, &foreground, &background);
+	*fg = foreground;
+	*bg = background;
+	return result;
+#endif
+}
+
 /* Allocate from the top of the portable pair range, above interface and
  * syntax pairs.  Never recycle live pairs: curses may still display them. */
 static int ansi_pair(int fg, int bg)
@@ -2561,7 +2635,7 @@ static int ansi_pair(int fg, int bg)
 	static bool used[256];
 	int floor = NUMBER_OF_ELEMENTS;
 	int limit = (COLOR_PAIRS < 256 ? COLOR_PAIRS : 256);
-	short foreground = ansi_color(fg), background = ansi_color(bg);
+	int foreground = ansi_color(fg), background = ansi_color(bg);
 
 	if (!has_colors() || (fg == -1 && bg == -1))
 		return 0;
@@ -2571,16 +2645,16 @@ static int ansi_pair(int fg, int bg)
 				floor = ink->pairnum;
 
 	for (int pair = limit - 1; pair > floor; pair--) {
-		short oldfg, oldbg;
-		if (used[pair] && pair_content(pair, &oldfg, &oldbg) == OK &&
+		int oldfg, oldbg;
+		if (used[pair] && ansi_pair_content(pair, &oldfg, &oldbg) == OK &&
 				(oldfg == foreground || (foreground < 0 && oldfg == COLOR_WHITE)) &&
 				(oldbg == background || (background < 0 && oldbg == COLOR_BLACK)))
 			return COLOR_PAIR(pair);
 	}
 	for (int pair = limit - 1; pair > floor; pair--)
 		if (!used[pair]) {
-			if (init_pair(pair, foreground, background) == ERR &&
-					init_pair(pair, foreground < 0 ? COLOR_WHITE : foreground,
+			if (ansi_init_pair(pair, foreground, background) == ERR &&
+					ansi_init_pair(pair, foreground < 0 ? COLOR_WHITE : foreground,
 							background < 0 ? COLOR_BLACK : background) == ERR)
 				return 0;
 			used[pair] = TRUE;

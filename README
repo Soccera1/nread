@@ -37,8 +37,10 @@ Usage
 
     ANSI SGR colors and text attributes are rendered automatically in files
     and piped input. Styles continue across lines and soft wraps. Standard,
-    bright, and 256-color codes are supported; RGB colors are approximated
-    with the terminal palette. Search and selection use the visible text.
+    bright, and 256-color codes are supported. RGB colors retain full precision
+    when ncurses and the terminal's terminfo entry support direct RGB colors;
+    otherwise they are approximated with the terminal palette. Search and
+    selection use the visible text.
     Complete CSI controls and OSC metadata (including hyperlink wrappers)
     are removed without executing terminal commands. Incomplete escape
     sequences remain visible. Input files are never modified.

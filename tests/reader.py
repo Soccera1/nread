@@ -8,6 +8,7 @@ from pathlib import Path
 import pty
 import select
 import signal
+import shutil
 import struct
 import subprocess
 import sys
@@ -239,6 +240,59 @@ class ReaderTests(unittest.TestCase):
         self.assertIn("link visible", reader.text)
         self.assertIn("truncated ^[[31", reader.text)
         self.assertNotIn("https://", reader.text)
+        reader.exit()
+
+    def direct_color_terminal(self, rgb=True):
+        if not shutil.which("tic"):
+            self.skipTest("requires tic to create controlled terminfo entries")
+        source = self.home / "direct.terminfo"
+        database = self.home / "terminfo"
+        # Use semicolon SGR separators so pyte can decode the RGB output.
+        source.write_text(
+            "nread-test-direct|direct RGB test terminal,\n"
+            + ("\tRGB,\n" if rgb else "\tRGB@,\n")
+            + r"""	colors#0x1000000, pairs#0x10000,
+	setaf=\E[%?%p1%{8}%<%t3%p1%d%e38;2;%p1%{65536}%/%d;%p1%{256}%/%{255}%&%d;%p1%{255}%&%d%;m,
+	setab=\E[%?%p1%{8}%<%t4%p1%d%e48;2;%p1%{65536}%/%d;%p1%{256}%/%{255}%&%d;%p1%{255}%&%d%;m,
+	use=xterm-256color,
+""")
+        subprocess.run(["tic", "-x", "-o", str(database), str(source)], check=True,
+                       capture_output=True)
+        return {"TERM": "nread-test-direct", "TERMINFO": str(database)}
+
+    @unittest.skipIf(os.getenv("NREAD_TEST_REDUCED_FEATURES"), "requires ANSI colors")
+    def test_ansi_direct_rgb_and_indexed_colors(self):
+        reader = self.reader("-I", "--zero", stdin=(
+            b"\x1b[38;2;18;52;86;48;2;210;123;45mexact\x1b[0m "
+            b"\x1b[38;5;196mred\x1b[38;5;21mblue\x1b[38;5;244mgray\x1b[0m "
+            b"\x1b[91mbright\x1b[0m "
+            b"\x1b[38;2;18;52;86;48;2;210;123;45magain\x1b[0m plain\n"),
+            env=self.direct_color_terminal())
+        reader.wait_for("exact redbluegray bright again plain")
+        cells = reader.screen.buffer[0]
+        self.assertEqual((cells[0].fg, cells[0].bg), ("123456", "d27b2d"))
+        self.assertEqual(cells[6].fg, "ff0000")
+        self.assertEqual(cells[9].fg, "0000ff")
+        self.assertEqual(cells[13].fg, "808080")
+        self.assertEqual(cells[18].fg, "ff0000")
+        self.assertEqual((cells[25].fg, cells[25].bg), ("123456", "d27b2d"))
+        self.assertEqual(cells[31].fg, "default")
+        reader.exit()
+
+    @unittest.skipIf(os.getenv("NREAD_TEST_REDUCED_FEATURES"), "requires ANSI colors")
+    def test_ansi_rgb_palette_fallback(self):
+        reader = self.reader("-I", "--zero", stdin=b"\x1b[38;2;18;52;86mapproximate\x1b[0m\n",
+                             env={"TERM": "xterm-256color"})
+        reader.wait_for("approximate")
+        self.assertEqual(reader.screen.buffer[0][0].fg, "005f87")
+        reader.exit()
+
+    @unittest.skipIf(os.getenv("NREAD_TEST_REDUCED_FEATURES"), "requires ANSI colors")
+    def test_ansi_large_palette_without_rgb_capability(self):
+        reader = self.reader("-I", "--zero", stdin=b"\x1b[38;2;255;0;0mfallback\x1b[0m\n",
+                             env=self.direct_color_terminal(rgb=False))
+        reader.wait_for("fallback")
+        self.assertEqual(reader.screen.buffer[0][0].fg, "red")
         reader.exit()
 
     @unittest.skipIf(os.getenv("NREAD_TEST_REDUCED_FEATURES"), "requires ANSI colors")

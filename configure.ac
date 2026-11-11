@@ -354,6 +354,15 @@ fi
 AC_CHECK_LIB([$CURSES_LIB_NAME], [use_default_colors],
 			 [AC_DEFINE(HAVE_USE_DEFAULT_COLORS, 1, [Define this if your curses library has the use_default_colors() function.])],
 			 [], [$CURSES_LIB])
+AC_CHECK_LIB([$CURSES_LIB_NAME], [init_extended_pair],
+			 [AC_DEFINE(HAVE_INIT_EXTENDED_PAIR, 1, [Define if curses has init_extended_pair.])],
+			 [], [$CURSES_LIB])
+AC_CHECK_LIB([$CURSES_LIB_NAME], [extended_pair_content],
+			 [AC_DEFINE(HAVE_EXTENDED_PAIR_CONTENT, 1, [Define if curses has extended_pair_content.])],
+			 [], [$CURSES_LIB])
+AC_CHECK_LIB([$CURSES_LIB_NAME], [tigetflag],
+			 [AC_DEFINE(HAVE_TIGETFLAG, 1, [Define if curses has tigetflag.])],
+			 [], [$CURSES_LIB])
 AC_CHECK_LIB([$CURSES_LIB_NAME], [set_escdelay],
 			 [AC_DEFINE(HAVE_SET_ESCDELAY, 1, [Define this if your curses library has the set_escdelay() function.])],
 			 [], [$CURSES_LIB])

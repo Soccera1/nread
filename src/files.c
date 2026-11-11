@@ -628,7 +628,7 @@ char *encode_data(char *text, size_t length)
 	return copy_of(text);
 }
 
-/* Apply SGR parameters.  Extended colors use the xterm 256-color palette. */
+/* Apply SGR parameters, preserving indexed colors and full RGB values. */
 static void ansi_sgr(ansistyle *style, const int *args, size_t count)
 {
 	for (size_t i = 0; i < count; i++) {
@@ -656,19 +656,18 @@ static void ansi_sgr(ansistyle *style, const int *args, size_t count)
 			case 38: case 48: {
 				int color = -1;
 				if (i + 2 < count && args[i + 1] == 5) {
-					color = args[i + 2];
+					color = (args[i + 2] <= 255 ? args[i + 2] : -1);
 					i += 2;
 				} else if (i + 4 < count && args[i + 1] == 2) {
 					int r = args[i + 2], g = args[i + 3], b = args[i + 4];
 					if (r <= 255 && g <= 255 && b <= 255)
-						color = 16 + 36 * ((r * 5 + 127) / 255) +
-								6 * ((g * 5 + 127) / 255) + (b * 5 + 127) / 255;
+						color = ANSI_RGB_FLAG | (r << 16) | (g << 8) | b;
 					i += 4;
 				} else {
 					/* An incomplete extended color must not become attributes. */
 					return;
 				}
-				if (color >= 0 && color <= 255) {
+				if (color >= 0 && (color <= 255 || (color & ANSI_RGB_FLAG))) {
 					if (value == 38) style->fg = color;
 					else style->bg = color;
 				}

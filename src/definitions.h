@@ -468,6 +468,9 @@ typedef struct lintstruct {
 } lintstruct;
 #endif /* ENABLE_COLOR */
 
+/* Distinguish packed RGB values from indexed colors (0..255) and default (-1). */
+#define ANSI_RGB_FLAG  0x1000000
+
 /* ANSI rendition changes, indexed by byte in the visible line text. */
 typedef struct ansistyle {
 	int fg, bg;
