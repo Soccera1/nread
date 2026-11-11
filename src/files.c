@@ -628,6 +628,116 @@ char *encode_data(char *text, size_t length)
 	return copy_of(text);
 }
 
+/* Apply SGR parameters.  Extended colors use the xterm 256-color palette. */
+static void ansi_sgr(ansistyle *style, const int *args, size_t count)
+{
+	for (size_t i = 0; i < count; i++) {
+		int value = args[i];
+
+		switch (value) {
+			case 0: *style = (ansistyle){-1, -1, 0}; break;
+			case 1: style->attributes |= A_BOLD; break;
+			case 2: style->attributes |= A_DIM; break;
+#ifdef A_ITALIC
+			case 3: style->attributes |= A_ITALIC; break;
+			case 23: style->attributes &= ~A_ITALIC; break;
+#endif
+			case 4: style->attributes |= A_UNDERLINE; break;
+			case 5: style->attributes |= A_BLINK; break;
+			case 7: style->attributes |= A_REVERSE; break;
+			case 8: style->attributes |= A_INVIS; break;
+			case 22: style->attributes &= ~(A_BOLD | A_DIM); break;
+			case 24: style->attributes &= ~A_UNDERLINE; break;
+			case 25: style->attributes &= ~A_BLINK; break;
+			case 27: style->attributes &= ~A_REVERSE; break;
+			case 28: style->attributes &= ~A_INVIS; break;
+			case 39: style->fg = -1; break;
+			case 49: style->bg = -1; break;
+			case 38: case 48: {
+				int color = -1;
+				if (i + 2 < count && args[i + 1] == 5) {
+					color = args[i + 2];
+					i += 2;
+				} else if (i + 4 < count && args[i + 1] == 2) {
+					int r = args[i + 2], g = args[i + 3], b = args[i + 4];
+					if (r <= 255 && g <= 255 && b <= 255)
+						color = 16 + 36 * ((r * 5 + 127) / 255) +
+								6 * ((g * 5 + 127) / 255) + (b * 5 + 127) / 255;
+					i += 4;
+				} else {
+					/* An incomplete extended color must not become attributes. */
+					return;
+				}
+				if (color >= 0 && color <= 255) {
+					if (value == 38) style->fg = color;
+					else style->bg = color;
+				}
+				break;
+			}
+			default:
+				if (value >= 30 && value <= 37) style->fg = value - 30;
+				if (value >= 40 && value <= 47) style->bg = value - 40;
+				if (value >= 90 && value <= 97) style->fg = value - 90 + 8;
+				if (value >= 100 && value <= 107) style->bg = value - 100 + 8;
+		}
+	}
+}
+
+/* Remove complete CSI and OSC sequences without executing terminal commands.
+ * Keep malformed/truncated escapes visible, like other control characters. */
+static void decode_ansi(linestruct *line, ansistyle *style)
+{
+	char *text = line->data;
+	size_t source = 0, target = 0;
+	ansirun **tail = &line->ansi;
+	bool changed = (style->fg != -1 || style->bg != -1 || style->attributes);
+
+	while (text[source]) {
+		if (text[source] == '\x1b' && text[source + 1] == '[') {
+			size_t end = source + 2;
+			int args[64] = {0};
+			size_t count = 1;
+			bool sgr = TRUE;
+
+			while (text[end] >= 0x20 && text[end] <= 0x3f) {
+				if (text[end] >= '0' && text[end] <= '9') {
+					if (args[count - 1] < 10000)
+						args[count - 1] = args[count - 1] * 10 + text[end] - '0';
+				} else if (text[end] == ';' && count < 64)
+					count++;
+				else
+					sgr = FALSE;
+				end++;
+			}
+			if (text[end] >= 0x40 && text[end] <= 0x7e) {
+				if (text[end] == 'm' && sgr) {
+					ansi_sgr(style, args, count);
+					changed = TRUE;
+				}
+				source = end + 1;
+				continue;
+			}
+		} else if (text[source] == '\x1b' && text[source + 1] == ']') {
+			size_t end = source + 2;
+			while (text[end] && text[end] != '\a' &&
+					!(text[end] == '\x1b' && text[end + 1] == '\\'))
+				end++;
+			if (text[end]) {
+				source = end + (text[end] == '\a' ? 1 : 2);
+				continue;
+			}
+		}
+		if (changed) {
+			*tail = nmalloc(sizeof(ansirun));
+			**tail = (ansirun){target, *style, NULL};
+			tail = &(*tail)->next;
+			changed = FALSE;
+		}
+		text[target++] = text[source++];
+	}
+	text[target] = '\0';
+}
+
 /* The number of bytes by which we expand the line buffer while reading. */
 #define LUMPSIZE  120
 
@@ -646,6 +756,7 @@ void read_file(FILE *stream, int fd, const char *filename, bool undoable)
 		/* The length of the current line of the file. */
 	size_t bufsize = LUMPSIZE;
 		/* The size of the line buffer; increased as needed. */
+	ansistyle ansi = {-1, -1, 0};
 	char *buf = nmalloc(bufsize);
 		/* The buffer in which we assemble each line of the file. */
 	linestruct *topline;
@@ -724,6 +835,7 @@ void read_file(FILE *stream, int fd, const char *filename, bool undoable)
 
 		/* Store the data and make a new line. */
 		bottomline->data = encode_data(buf, len);
+		decode_ansi(bottomline, &ansi);
 		bottomline->next = make_new_node(bottomline);
 		bottomline = bottomline->next;
 		num_lines++;
@@ -769,6 +881,7 @@ void read_file(FILE *stream, int fd, const char *filename, bool undoable)
 		bottomline->data = copy_of("");
 	else {
 		bottomline->data = encode_data(buf, len);
+		decode_ansi(bottomline, &ansi);
 		num_lines++;
 	}
 

@@ -201,6 +201,90 @@ class ReaderTests(unittest.TestCase):
         self.assertFalse(list(self.home.glob("*.save")))
         self.assertFalse(list(self.home.glob("*~")))
 
+    @unittest.skipIf(os.getenv("NREAD_TEST_REDUCED_FEATURES"), "requires ANSI colors")
+    def test_ansi_colors_attributes_and_resets(self):
+        data = (b"plain \x1b[1;31;44mstyled\x1b[22;24;39;49m normal\n"
+                b"\x1b[4;32munderlined\ncontinued\x1b[m reset\n"
+                b"\x1b[91mbright\x1b[0m\n")
+        self.first.write_bytes(data)
+        reader = self.reader("-I", str(self.first), env={"TERM": "xterm-256color"})
+        reader.wait_for("plain styled normal")
+        rows = reader.screen.display
+        row = next(i for i, text in enumerate(rows) if "plain styled normal" in text)
+        cell = reader.screen.buffer[row][6]
+        self.assertEqual((cell.fg, cell.bg, cell.bold), ("red", "blue", True))
+        cell = reader.screen.buffer[row][13]
+        self.assertEqual((cell.fg, cell.bg, cell.bold), ("default", "default", False))
+        self.assertTrue(reader.screen.buffer[row + 1][0].underscore)
+        self.assertEqual(reader.screen.buffer[row + 2][0].fg, "green")
+        self.assertTrue(reader.screen.buffer[row + 2][0].underscore)
+        self.assertFalse(reader.screen.buffer[row + 2][10].underscore)
+        self.assertNotIn("^[", reader.text)
+        reader.exit()
+        self.assertEqual(self.first.read_bytes(), data)
+
+    @unittest.skipIf(os.getenv("NREAD_TEST_REDUCED_FEATURES"), "requires ANSI colors")
+    def test_ansi_extended_colors_and_osc_links_from_pipe(self):
+        reader = self.reader("-I", stdin=(
+            b"\x1b[38;5;196;48;5;21mindexed\x1b[0m "
+            b"\x1b[38;2;0;255;0mRGB\x1b[0m\n"
+            b"\x1b]8;;https://example.com\x1b\\link\x1b]8;;\x07 "
+            b"\x1b[2Jvisible\ntruncated \x1b[31"),
+            env={"TERM": "xterm-256color"})
+        reader.wait_for("indexed RGB")
+        row = next(i for i, text in enumerate(reader.screen.display) if "indexed RGB" in text)
+        self.assertEqual(reader.screen.buffer[row][0].fg, "ff0000")
+        self.assertEqual(reader.screen.buffer[row][0].bg, "0000ff")
+        self.assertEqual(reader.screen.buffer[row][8].fg, "00ff00")
+        self.assertIn("link visible", reader.text)
+        self.assertIn("truncated ^[[31", reader.text)
+        self.assertNotIn("https://", reader.text)
+        reader.exit()
+
+    @unittest.skipIf(os.getenv("NREAD_TEST_REDUCED_FEATURES"), "requires ANSI colors")
+    def test_ansi_wrapping_search_and_buffer_switch(self):
+        self.first.write_bytes(b"\x1b[31m" + b"a" * 118 +
+                               b"ne\x1b[1medle" + b"z" * 130 + b"\x1b[0m\n")
+        reader = self.reader("-I", "--softwrap", "--zero", str(self.first))
+        reader.wait_for("a" * 100)
+        self.assertEqual(reader.screen.display[0], "a" * 118 + "ne")
+        self.assertTrue(reader.screen.display[1].startswith("edle"))
+        self.assertEqual(reader.screen.buffer[1][0].fg, "red")
+        reader.send(b"\x06needle\r")
+        self.assertIn(reader.screen.cursor.y, (0, 1))
+        self.assertNotIn("not found", reader.text.lower())
+        reader.send(b"\x12" + os.fsencode(self.second) + b"\r")
+        reader.wait_for("second file contents")
+        self.assertEqual(reader.screen.buffer[0][0].fg, "default")
+        reader.send(b"\x18")
+        reader.wait_for("a" * 100)
+        self.assertEqual(reader.screen.buffer[1][10].fg, "red")
+        reader.exit()
+
+    def test_ansi_plain_text_on_monochrome_terminal(self):
+        reader = self.reader("-I", stdin=b"before\x1b[31mcolored\x1b[0mafter\n",
+                             env={"TERM": "vt100"})
+        reader.wait_for("beforecoloredafter")
+        self.assertNotIn("^[", reader.text)
+        reader.exit()
+
+    @unittest.skipIf(os.getenv("NREAD_TEST_REDUCED_FEATURES"), "requires ANSI colors")
+    def test_ansi_tabs_unicode_and_horizontal_scroll(self):
+        data = "\x1b[32m\t界 café\x1b[0m plain\n" + "\x1b[34m" + "x" * 160 + " end\x1b[0m\n"
+        self.first.write_text(data)
+        reader = self.reader("-I", "--zero", str(self.first))
+        reader.wait_for("界 café plain")
+        self.assertEqual(reader.screen.display[0][:8], " " * 8)
+        self.assertEqual(reader.screen.buffer[0][8].fg, "green")
+        self.assertEqual(reader.screen.buffer[0][15].fg, "default")
+        reader.send(b"\x06end\r")
+        reader.wait_for("end")
+        row = reader.screen.cursor.y
+        column = reader.screen.display[row].index("end")
+        # Search highlighting takes precedence over the underlying ANSI color.
+        self.assertEqual(reader.screen.buffer[row][column - 2].fg, "blue")
+        reader.exit()
+
     def test_piped_input(self):
         reader = self.reader("-I", "-", stdin=b"piped contents\n")
         reader.wait_for("piped contents")

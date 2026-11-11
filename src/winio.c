@@ -2537,6 +2537,90 @@ void place_the_cursor(void)
 /* The number of bytes after which to stop painting, to avoid major slowdowns. */
 #define PAINT_LIMIT  2000
 
+#ifdef ENABLE_COLOR
+/* Use the terminal's available palette, reducing extended colors on terminals
+ * with only eight or sixteen colors. */
+static short ansi_color(int color)
+{
+	if (color < COLORS)
+		return color;
+	if (color < 16)
+		return color % 8;
+	if (color >= 232)
+		return (color >= 244 ? COLOR_WHITE : COLOR_BLACK);
+	color -= 16;
+	return ((color / 36 >= 3) ? COLOR_RED : 0) |
+			((color / 6 % 6 >= 3) ? COLOR_GREEN : 0) |
+			((color % 6 >= 3) ? COLOR_BLUE : 0);
+}
+
+/* Allocate from the top of the portable pair range, above interface and
+ * syntax pairs.  Never recycle live pairs: curses may still display them. */
+static int ansi_pair(int fg, int bg)
+{
+	static bool used[256];
+	int floor = NUMBER_OF_ELEMENTS;
+	int limit = (COLOR_PAIRS < 256 ? COLOR_PAIRS : 256);
+	short foreground = ansi_color(fg), background = ansi_color(bg);
+
+	if (!has_colors() || (fg == -1 && bg == -1))
+		return 0;
+	if (openfile->syntax)
+		for (colortype *ink = openfile->syntax->color; ink; ink = ink->next)
+			if (ink->pairnum > floor)
+				floor = ink->pairnum;
+
+	for (int pair = limit - 1; pair > floor; pair--) {
+		short oldfg, oldbg;
+		if (used[pair] && pair_content(pair, &oldfg, &oldbg) == OK &&
+				(oldfg == foreground || (foreground < 0 && oldfg == COLOR_WHITE)) &&
+				(oldbg == background || (background < 0 && oldbg == COLOR_BLACK)))
+			return COLOR_PAIR(pair);
+	}
+	for (int pair = limit - 1; pair > floor; pair--)
+		if (!used[pair]) {
+			if (init_pair(pair, foreground, background) == ERR &&
+					init_pair(pair, foreground < 0 ? COLOR_WHITE : foreground,
+							background < 0 ? COLOR_BLACK : background) == ERR)
+				return 0;
+			used[pair] = TRUE;
+			return COLOR_PAIR(pair);
+		}
+	return 0;
+}
+#endif
+
+/* Paint ANSI runs over syntax colors, but below selection and search marks.
+ * All positions refer to visible text, so tabs and wrapping work normally. */
+static void draw_ansi(int row, const char *converted, linestruct *line,
+						size_t from_col)
+{
+	size_t width = breadth(converted);
+
+	for (ansirun *run = line->ansi; run; run = run->next) {
+		size_t start = wideness(line->data, run->start);
+		size_t end = (run->next ? wideness(line->data, run->next->start) :
+				breadth(line->data));
+		int attributes = run->style.attributes;
+		size_t first, last;
+
+		if (end <= from_col || start >= from_col + width)
+			continue;
+		start = (start > from_col ? start - from_col : 0);
+		end = (end - from_col < width ? end - from_col : width);
+		first = actual_x(converted, start);
+		last = actual_x(converted, end);
+#ifdef ENABLE_COLOR
+		attributes |= ansi_pair(run->style.fg, run->style.bg);
+		if (COLORS == 8 && run->style.fg >= 8 && run->style.fg < 16)
+			attributes |= A_BOLD;
+#endif
+		wattrset(midwin, attributes);
+		mvwaddnstr(midwin, row, margin + start, converted + first, last - first);
+		wattrset(midwin, A_NORMAL);
+	}
+}
+
 /* Draw the given text on the given row of the edit window.  line is the
  * line to be drawn, and converted is the actual string to be written with
  * tabs and control characters replaced by strings of regular characters.
@@ -2734,6 +2818,8 @@ void draw_row(int row, const char *converted, linestruct *line, size_t from_col)
 		}
 	}
 #endif /* ENABLE_COLOR */
+
+	draw_ansi(row, converted, line, from_col);
 
 #ifndef NANO_TINY
 	if (stripe_column > from_col && !inhelp &&

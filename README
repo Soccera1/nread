@@ -35,6 +35,14 @@ Usage
     automatically. An explicit - filename also reads standard input.
     Interactive reading requires a controlling terminal for keystrokes.
 
+    ANSI SGR colors and text attributes are rendered automatically in files
+    and piped input. Styles continue across lines and soft wraps. Standard,
+    bright, and 256-color codes are supported; RGB colors are approximated
+    with the terminal palette. Search and selection use the visible text.
+    Complete CSI controls and OSC metadata (including hyperlink wrappers)
+    are removed without executing terminal commands. Incomplete escape
+    sequences remain visible. Input files are never modified.
+
     Use arrow keys and Page Up/Down to navigate. With the default key
     bindings, Ctrl+F searches, Alt+W finds another match, Ctrl+R opens
     another file, and Alt+, / Alt+. switch between files. Ctrl+X closes

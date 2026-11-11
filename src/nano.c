@@ -71,6 +71,7 @@ linestruct *make_new_node(linestruct *prevnode)
 	newnode->prev = prevnode;
 	newnode->next = NULL;
 	newnode->data = NULL;
+	newnode->ansi = NULL;
 #ifdef ENABLE_COLOR
 	newnode->multidata = NULL;
 #endif
@@ -108,6 +109,11 @@ void delete_node(linestruct *line)
 		openfile->spillage_line = NULL;
 #endif
 	free(line->data);
+	while (line->ansi) {
+		ansirun *next = line->ansi->next;
+		free(line->ansi);
+		line->ansi = next;
+	}
 #ifdef ENABLE_COLOR
 	free(line->multidata);
 #endif
@@ -149,6 +155,7 @@ linestruct *copy_node(const linestruct *src)
 	linestruct *dst = nmalloc(sizeof(linestruct));
 
 	dst->data = copy_of(src->data);
+	dst->ansi = NULL;  /* Copies contain the visible text. */
 #ifdef ENABLE_COLOR
 	dst->multidata = NULL;
 #endif

@@ -468,10 +468,24 @@ typedef struct lintstruct {
 } lintstruct;
 #endif /* ENABLE_COLOR */
 
+/* ANSI rendition changes, indexed by byte in the visible line text. */
+typedef struct ansistyle {
+	int fg, bg;
+	int attributes;
+} ansistyle;
+
+typedef struct ansirun {
+	size_t start;
+	ansistyle style;
+	struct ansirun *next;
+} ansirun;
+
 /* More structure types. */
 typedef struct linestruct {
 	char *data;
 		/* The text of this line. */
+	ansirun *ansi;
+		/* ANSI rendition changes in the visible text. */
 	ssize_t lineno;
 		/* The number of this line. */
 	struct linestruct *next;

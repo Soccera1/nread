@@ -395,6 +395,13 @@ void ingraft_buffer(linestruct *topline)
 	if (topline != botline)
 		length = xpos;
 
+	/* Reader input is grafted into an empty buffer.  Keep its first
+	 * line's rendition changes when the temporary node is discarded. */
+	if (length == 0 && xpos == 0 && line->ansi == NULL) {
+		line->ansi = topline->ansi;
+		topline->ansi = NULL;
+	}
+
 	if (extralen > 0) {
 		/* Insert the text of topline at the current cursor position. */
 		line->data = nrealloc(line->data, length + extralen + 1);
