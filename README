@@ -1,76 +1,198 @@
-nread -- a terminal text reader
-==============================
 
-nread is a read-only fork of GNU nano. It keeps file browsing, search,
-syntax highlighting, line numbers, soft wrapping, and multiple open files.
-Typing and pasting cannot change the displayed text. There are no save,
-replace, cut, undo, formatting, spell-checking, or command-execution controls.
-Files are opened without editor lock files, and exiting never asks to save.
+          nread -- a terminal text reader, derived from GNU nano
+
+Purpose
+
+    Nread is a small and simple text reader for use on the terminal.
+    It keeps nano's interface and reader conveniences: syntax highlighting,
+    line numbers, softwrapping, multiple buffers, selecting text by holding
+    Shift, and searching with regular expressions. Editing, saving,
+    search-and-replace, formatting, and command execution are removed
+    from the interface. Files are always read-only.
+
+    The project began as a replacement for a personal nless shell script
+    that opened files or piped output in nano with --view --softwrap
+    --zero. That wrapper still had the limitations of an editor running
+    in view-only mode. It also copied piped input to a temporary file
+    before opening nano, adding disk I/O and startup delay for large
+    inputs. Nread makes this workflow a dedicated reader and reads piped
+    input directly into its buffer, without that temporary-file step.
 
 Usage
------
 
-    nread file.txt
-    nread -l -S file.txt another.txt
-    nread +42 file.txt
-    command | nread -
+        nread file.txt
+        nread file.txt another.txt
+        nread +42 file.txt
+        command | nread -
 
-Use arrow keys and Page Up/Down to navigate. Ctrl+F searches, Alt+W finds
-another match, Ctrl+R opens another file, and Alt+, / Alt+. switch files.
-Ctrl+X closes the current file and exits when no files remain. Ctrl+G shows
-all shortcuts. Text selection and copying remain available for reading.
-Use --help to see display and navigation options.
+    To use the soft-wrapped, full-screen appearance of the nless script:
+
+        nread --softwrap --zero file.txt
+        command | nread --softwrap --zero -
+
+    Use arrow keys and Page Up/Down to navigate. With the default key
+    bindings, Ctrl+F searches, Alt+W finds another match, Ctrl+R opens
+    another file, and Alt+, / Alt+. switch between files. Ctrl+X closes
+    the current file and exits when no files remain. Ctrl+G shows help.
+    Configuration can change these bindings. Use --help for all options.
+
+Appearance
+
+    In rough ASCII graphics, this is what nread's screen looks like
+    with its title and shortcut bars visible:
+
+   ____________________________________________________________________
+  |  nread                         filename                 Read-only  |
+   --------------------------------------------------------------------
+  | This is the text window, displaying the contents of a 'buffer',    |
+  | the contents of the file you are reading.                          |
+  |                                                                    |
+  | The top row of the screen is the 'title bar'; it shows the         |
+  | program version, the name of the file, and its read-only status.   |
+  | The two bottom rows display the most important shortcuts; in       |
+  | those lines ^ means Ctrl. The third row from the bottom shows      |
+  | some feedback message, or gets replaced with a prompt bar when     |
+  | you tell nread to do something that requires extra input.          |
+  |                                                                    |
+   --------------------------------------------------------------------
+  |                       [ Some status message ]                      |
+  |^G Help        ^R Open File   ^C Location    M-6 Copy                 |
+  |^X Exit        ^F Where Is    M-A Set Mark   M-] To Bracket           |
+   --------------------------------------------------------------------
+
+    The shortcuts shown depend on terminal width and configuration.
+    With --zero, the text fills the terminal and these bars are hidden.
+
+Origin
+
+    Nread is forked from the GNU nano development tree at commit
+    9de9f1ee, 38 commits after the 9.3 release. The original authors and
+    contributors are listed in AUTHORS and THANKS. The following is
+    the background of the upstream nano project.
+
+    The nano project was started in 1999 because of a few "problems"
+    with the wonderfully easy-to-use and friendly Pico text editor.
+
+    First and foremost was its license: the Pine suite does not use
+    the GPL, and (before using the Apache License) it had unclear
+    restrictions on redistribution.  Because of this, Pine and Pico
+    were not included in many GNU/Linux distributions.  Furthermore,
+    some features (like go-to-line-number or search-and-replace) were
+    unavailable for a long time or require a command-line flag.  Yuck.
+
+    Nano aimed to solve these problems by: 1) being truly free software
+    by using the GPL, 2) emulating the functionality of Pico as closely
+    as is reasonable, and 3) including extra functionality by default.
+
+    Nowadays, nano wants to be a generally useful editor with sensible
+    defaults (linewise scrolling, no automatic line breaking).
+
+    The upstream nano editor is an official GNU package. For more
+    information on GNU and the Free Software Foundation, see
+    https://www.gnu.org/.
+
+License
+
+    Nread's code and documentation are covered by the GPL version 3 or
+    (at your option) any later version, except for two functions that
+    were copied from busybox which are under a BSD license.  The
+    documentation is additionally covered by the GNU Free Documentation
+    License version 1.2 or (at your option) any later version.  See the
+    files COPYING and COPYING.DOC for the full text of these licenses.
+
+    When in any file of this package a copyright notice mentions a
+    year range (such as 1999-2011), it is a shorthand for a list of
+    all the years in that interval.
+
+How to compile and install nread
+
+    From a Git checkout, generate the build system first:
+
+        ./autogen.sh
+
+    Then configure, compile, and optionally install:
+
+        ./configure
+        make
+        make install
+
+    You can also run the built reader directly with ./src/nread.
+    Bootstrapping requires Git, autoconf, automake, and autopoint/gettext,
+    and downloads the pinned gnulib dependency. See README.hacking for
+    the inherited build prerequisites.
+
+    You will need the header files of ncurses installed for ./configure
+    to succeed -- get them from libncurses-dev (Debian) or ncurses-devel
+    (Fedora) or a similarly named package. Use --prefix with ./configure
+    to override the default installation directory of /usr/local. Use
+    --sysconfdir to choose the preferred system configuration directory;
+    nread also checks /etc for an installed nreadrc or nanorc.
 
 Configuration
--------------
 
-nread retains nano's nanorc syntax. It looks for nreadrc in the configured
-system location (normally /usr/local/etc), then /etc. If neither exists,
-it looks for nanorc in those same locations. This lets a local build reuse
-the system's installed /etc/nanorc without extra configure flags.
-It then reads the first user configuration found in this order:
+    Nread retains nano's nanorc syntax. It looks for nreadrc in the
+    configured system directory, then /etc. If neither exists, it looks
+    for nanorc in those same locations. It then reads the first user
+    configuration found in this order:
 
-    ~/.nreadrc
-    $XDG_CONFIG_HOME/nread/nreadrc
-    ~/.config/nread/nreadrc
-    ~/.nanorc
-    $XDG_CONFIG_HOME/nano/nanorc
-    ~/.config/nano/nanorc
+        ~/.nreadrc
+        $XDG_CONFIG_HOME/nread/nreadrc
+        ~/.config/nread/nreadrc
+        ~/.nanorc
+        $XDG_CONFIG_HOME/nano/nanorc
+        ~/.config/nano/nanorc
 
-Use -I to ignore configuration or -f FILE to read only a specific file.
-Display settings, syntax definitions, and reader key bindings are supported.
-Settings and bindings for disabled features are silently ignored; ignored
-bindings leave existing reader shortcuts intact. Unknown settings still
-report errors. Search and cursor-position history can be saved when
-explicitly enabled with -H and -P or their configuration settings.
+    Use -I to ignore configuration or -f FILE to read only a specific
+    file. Settings and bindings for disabled features are silently
+    ignored; ignored bindings leave existing reader shortcuts intact.
+    Unknown settings still report errors. Search and cursor-position
+    history can be saved when explicitly enabled with -H and -P or
+    their configuration settings.
 
-Build
------
+    After building, you may want to copy doc/sample.nanorc to your home
+    directory, rename it to .nreadrc, and adjust it to your taste. It is
+    an inherited nano example, so editor-only settings have no effect.
 
-From this Git checkout:
+Tests
 
-    ./autogen.sh
-    ./configure
-    make
-    ./src/nread README
+    Run the reader regression checks after building. These require
+    Python 3 and pyte:
 
-The bootstrap requires Git, autoconf, automake, autopoint/gettext, and
-downloads the pinned gnulib dependency. Building requires a C compiler,
-make, pkg-config, and ncurses development headers. See README.hacking for
-the inherited build prerequisites. Use ./configure --prefix=PATH to set
-the installation location, then make install to install nread.
+        python3 tests/reader.py ./src/nread
 
-Run the reader regression checks after building (requires Python 3 and pyte):
+Web Page
 
-    python3 tests/reader.py ./src/nread
+    https://github.com/Soccera1/nread
 
-License and origin
-------------------
+    Upstream nano: https://nano-editor.org/
 
-Derived from the GNU nano development tree (https://nano-editor.org/),
-at commit 9de9f1ee, 38 commits after the 9.3 release. The original authors
-and contributors are listed in AUTHORS and THANKS. The source is licensed
-under GPL version 3 or later, with the existing BSD exceptions. Inherited
-documentation is also available under GNU FDL version 1.2 or later.
-See COPYING and COPYING.DOC. Historical nano documentation and release
-notes remain in the source tree for reference.
+Upstream Mailing Lists
+
+    There are three nano-related mailing-lists.
+
+    * <info-nano@gnu.org> is a very low traffic list used to announce
+      new nano versions or other important info about the project.
+
+    * <help-nano@gnu.org> is for those seeking to get help without
+      wanting to hear about the technical details of its development.
+
+    * <nano-devel@gnu.org> is the list used by the people that make nano
+      and a general development discussion list, with moderate traffic.
+
+    To subscribe, send email to <name>-request@gnu.org with a subject
+    of "subscribe", where <name> is the list you want to subscribe to.
+
+    The archives of the development and help mailing lists are here:
+
+        https://lists.gnu.org/archive/html/nano-devel/
+        https://lists.gnu.org/archive/html/help-nano/
+
+Bug Reports
+
+    For nread bugs, please file a detailed description of the problem
+    at https://github.com/Soccera1/nread/issues, including how to
+    reproduce it and any relevant configuration.
+
+    For problems reproduced in upstream nano, its issue tracker is
+    https://savannah.gnu.org/bugs/?group=nano, and its development
+    mailing list is nano-devel@gnu.org.
