@@ -741,6 +741,7 @@ void read_file(FILE *stream, int fd, const char *filename, bool undoable)
 
 #ifndef NANO_TINY
 	block_sigwinch(FALSE);
+#endif
 
 	/* When reading from stdin, restore the terminal and reenter curses mode. */
 	if (isendwin()) {
@@ -749,7 +750,6 @@ void read_file(FILE *stream, int fd, const char *filename, bool undoable)
 		terminal_init();
 		doupdate();
 	}
-#endif
 
 	/* If there was a real error during the reading, let the user know. */
 	if (ferror(stream) && errornumber != EINTR && errornumber != 0)

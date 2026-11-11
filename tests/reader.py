@@ -38,7 +38,14 @@ class Reader:
                 os.environ.update(env)
             fcntl.ioctl(1, termios.TIOCSWINSZ, struct.pack("HHHH", 30, 120, 0, 0))
             if stdin is not None:
-                result = subprocess.run([BINARY, *args], input=stdin)
+                terminal_state = termios.tcgetattr(1)
+                if isinstance(stdin, Path):
+                    with stdin.open("rb") as source:
+                        result = subprocess.run([BINARY, *args], stdin=source)
+                else:
+                    result = subprocess.run([BINARY, *args], input=stdin)
+                if termios.tcgetattr(1) != terminal_state:
+                    os._exit(99)
                 os._exit(result.returncode)
             os.execv(BINARY, [BINARY, *args])
         self.read()
@@ -199,6 +206,56 @@ class ReaderTests(unittest.TestCase):
         reader.wait_for("piped contents")
         reader.send(b"cannot insert")
         reader.exit()
+
+    def test_automatic_piped_input_without_temporary_files(self):
+        before = sorted(self.home.iterdir())
+        reader = self.reader("-I", stdin=b"automatic pipe contents\n",
+                             env={"TMPDIR": str(self.home / "nonexistent")})
+        reader.wait_for("automatic pipe contents")
+        reader.send(b"cannot insert")
+        self.assertNotIn("cannot insert", reader.text)
+        reader.exit()
+        self.assertEqual(sorted(self.home.iterdir()), before)
+
+    def test_redirected_input(self):
+        reader = self.reader("-I", stdin=self.first)
+        reader.wait_for("first line")
+        reader.send(b"\x06needle\r")
+        reader.wait_for("needle here")
+        reader.exit()
+        self.assertEqual(self.first.read_bytes(), self.original)
+
+    def test_empty_piped_input(self):
+        reader = self.reader("-I", stdin=b"")
+        reader.wait_for("Read-only")
+        reader.exit()
+
+    def test_large_piped_input_is_searchable(self):
+        payload = b"ordinary line of piped text\n" * 50000 + b"end of large input\n"
+        reader = self.reader("-I", stdin=payload,
+                             env={"TMPDIR": str(self.home / "nonexistent")})
+        reader.wait_for("ordinary line of piped text")
+        reader.send(b"\x06end of large input\r")
+        reader.wait_for("end of large input")
+        reader.exit()
+
+    def test_explicit_filename_takes_precedence_over_piped_input(self):
+        reader = self.reader("-I", str(self.first), stdin=b"ignored pipeline\n")
+        reader.wait_for("first line")
+        self.assertNotIn("ignored pipeline", reader.text)
+        reader.exit()
+
+    def test_piped_input_without_a_controlling_terminal(self):
+        master, slave = pty.openpty()
+        try:
+            result = subprocess.run([BINARY, "-I"], input=b"piped contents\n",
+                                    stdout=slave, stderr=subprocess.PIPE,
+                                    start_new_session=True, timeout=5)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn(b"requires a controlling terminal", result.stderr)
+        finally:
+            os.close(master)
+            os.close(slave)
 
     def test_multiple_command_line_files(self):
         reader = self.reader("-I", str(self.first), str(self.second))

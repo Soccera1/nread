@@ -10,7 +10,10 @@ nread is a read-only terminal text reader derived from GNU nano.
 It supports navigation, searching, syntax highlighting, soft wrapping,
 and multiple open files. Typing and pasting never alter the text.
 There are no editing, saving, replacement, or command-execution commands.
-Use a filename of \fB-\fR to read standard input.
+With no filenames, piped or redirected standard input is read automatically.
+Use a filename of \fB-\fR to read standard input explicitly.
+Input is read directly into memory without a temporary file.
+A controlling terminal is required for interactive keystrokes.
 .SH KEYS
 .TP
 .B Ctrl+F

@@ -474,7 +474,8 @@ void usage(void)
 	 * It's best to keep its lines within 80 characters. */
 	printf(_("To place the cursor on a specific line of a file, put the line number with\n"
 				"a '+' before the filename.  The column number can be added after a comma.\n"));
-	printf(_("When a filename is '-', nread reads data from standard input.\n\n"));
+	printf(_("With no files and redirected input, nread reads standard input.\n"
+				"Use '-' to read standard input explicitly.\n\n"));
 	/* TRANSLATORS: The next three are column headers of the --help output. */
 	print_opt(_("Option"), _("Long option"), N_("Meaning"));
 	/* TRANSLATORS: The next forty or so strings are option descriptions
@@ -759,8 +760,7 @@ void restore_handler_for_Ctrl_C(void)
 	disable_kb_interrupt();
 }
 
-#ifndef NANO_TINY
-/* Reconnect standard input to the tty, and store its state. */
+/* Reconnect standard input to the tty, preserving the state saved at startup. */
 void reconnect_and_store_state(void)
 {
 	int thetty = open("/dev/tty", O_RDONLY);
@@ -769,16 +769,13 @@ void reconnect_and_store_state(void)
 		die(_("Could not reconnect stdin to keyboard\n"));
 
 	close(thetty);
-
-	/* If input was not cut short, store the current state of the terminal. */
-	if (!control_C_was_pressed)
-		tcgetattr(STDIN_FILENO, &original_state);
 }
 
 /* Read whatever comes from standard input into a new buffer. */
 bool scoop_stdin(void)
 {
 	FILE *stream;
+	int inputfd;
 
 	restore_terminal();
 
@@ -787,9 +784,12 @@ bool scoop_stdin(void)
 		fprintf(stderr, _("Reading data from keyboard; type ^D or ^D^D to finish.\n"));
 
 	/* Open standard input. */
-	stream = fopen("/dev/stdin", "rb");
+	inputfd = dup(STDIN_FILENO);
+	stream = (inputfd < 0 ? NULL : fdopen(inputfd, "rb"));
 	if (stream == NULL) {
 		int errnumber = errno;
+		if (inputfd >= 0)
+			close(inputfd);
 
 		terminal_init();
 		doupdate();
@@ -800,9 +800,15 @@ bool scoop_stdin(void)
 	/* Set up a signal handler so that ^C will stop the reading. */
 	install_handler_for_Ctrl_C();
 
-	/* Read the input into a new buffer, undoably. */
+	/* Read the input directly into a new buffer. */
 	make_new_buffer();
 	read_file(stream, 0, "stdin", FALSE);
+	openfile->current = openfile->filetop;
+	openfile->edittop = openfile->filetop;
+	openfile->current_x = 0;
+	openfile->placewewant = 0;
+	openfile->cursor_row = 0;
+	openfile->firstcolumn = 0;
 #ifdef ENABLE_COLOR
 	find_and_prime_applicable_syntax();
 #endif
@@ -816,6 +822,7 @@ bool scoop_stdin(void)
 	return TRUE;
 }
 
+#ifndef NANO_TINY
 /* Register a handler for SIGWINCH because we want to handle window resizes. */
 void set_up_sigwinch_handler(void)
 {
@@ -1901,6 +1908,18 @@ int main(int argc, char **argv)
 	if (!isatty(STDOUT_FILENO))
 		die(_("Standard output is not a terminal\n"));
 
+	/* Piped data and interactive keystrokes come from different descriptors. */
+	if (!isatty(STDIN_FILENO)) {
+		int keyboard = open("/dev/tty", O_RDONLY);
+
+		if (keyboard < 0) {
+			fprintf(stderr, _("Reading standard input requires a controlling terminal\n"));
+			exit(1);
+		}
+		tcgetattr(keyboard, &original_state);
+		close(keyboard);
+	}
+
 	/* Curses needs TERM; if it is unset, try falling back to a VT220. */
 	if (getenv("TERM") == NULL)
 		putenv("TERM=vt220");
@@ -2262,6 +2281,12 @@ int main(int argc, char **argv)
 	set_escdelay(50);
 #endif
 
+	/* A pipeline or input redirection needs no explicit '-' filename. */
+	if (optind == argc && !isatty(STDIN_FILENO)) {
+		if (!scoop_stdin())
+			die(_("Could not read standard input\n"));
+	}
+
 	/* Read the files mentioned on the command line into new buffers. */
 	while (optind < argc && (!openfile || read_them_all)) {
 		ssize_t givenline = 0, givencol = 0;
@@ -2303,7 +2328,6 @@ int main(int argc, char **argv)
 				statusline(ALERT, _("Invalid line or column number"));
 		}
 
-#ifndef NANO_TINY
 		/* If the filename is a dash, read from standard input; otherwise,
 		 * open the file; skip positioning the cursor if either failed. */
 		if (strcmp(argv[optind], "-") == 0) {
@@ -2311,7 +2335,6 @@ int main(int argc, char **argv)
 			if (!scoop_stdin())
 				continue;
 		} else
-#endif
 		{
 			char *filename = expand_leading_tilde(argv[optind++]);
 			bool opened;
@@ -2385,8 +2408,10 @@ int main(int argc, char **argv)
 	UNSET(NOREAD_MODE);
 
 	/* Interactive reading requires a keyboard after consuming piped input. */
-	if (!isatty(STDIN_FILENO))
-		die(_("Standard input is not a terminal\n"));
+	if (!isatty(STDIN_FILENO)) {
+		reconnect_and_store_state();
+		terminal_init();
+	}
 
 	/* If no filenames were given, or all of them were invalid things like
 	 * directories, open an empty reader.  Otherwise,

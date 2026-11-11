@@ -419,9 +419,7 @@ void die(const char *msg, ...);
 void window_init(void);
 void install_handler_for_Ctrl_C(void);
 void restore_handler_for_Ctrl_C(void);
-#ifndef NANO_TINY
 void reconnect_and_store_state(void);
-#endif
 void handle_hupterm(int signal);
 #ifndef DEBUG
 void handle_crash(int signal);

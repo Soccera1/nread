@@ -23,12 +23,17 @@ Usage
         nread file.txt
         nread file.txt another.txt
         nread +42 file.txt
-        command | nread -
+        command | nread
+        nread < file.txt
 
     To use the soft-wrapped, full-screen appearance of the nless script:
 
         nread --softwrap --zero file.txt
-        command | nread --softwrap --zero -
+        command | nread --softwrap --zero
+
+    With no filenames, piped or redirected standard input is read
+    automatically. An explicit - filename also reads standard input.
+    Interactive reading requires a controlling terminal for keystrokes.
 
     Use arrow keys and Page Up/Down to navigate. With the default key
     bindings, Ctrl+F searches, Alt+W finds another match, Ctrl+R opens
